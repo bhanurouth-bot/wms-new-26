@@ -16,17 +16,17 @@ sales_models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Unified Pharma ERP-WMS", version="0.1.0")
 
 # --- CORS CONFIGURATION (NEW) ---
-origins = [
-    "http://localhost:5173",  # Vite (React) default port
-    "http://localhost:3000",  # Standard React port
-    "http://127.0.0.1:5173"
-]
+# origins = [
+#     "http://localhost:5173",  # Vite (React) default port
+#     "http://localhost:3000",  # Standard React port
+#     "http://127.0.0.1:5173"
+# ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"], # <--- Change this to "*"
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 # --------------------------------

@@ -1,22 +1,25 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# --- CONFIGURATION ---
-# FOR NOW: We use SQLite so you can run this immediately without installing Postgres.
-# LATER: We will change this string to connect to a real PostgreSQL server.
-SQLALCHEMY_DATABASE_URL = "sqlite:///./pharma_core.db"
-# SQLALCHEMY_DATABASE_URL = "postgresql://user:password@localhost/pharma_core"
+# 1. Try to get the Cloud Database URL
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-# connect_args is needed only for SQLite
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+# 2. If no cloud URL, fallback to local SQLite
+if not SQLALCHEMY_DATABASE_URL:
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./pharma_core.db"
+    connect_args = {"check_same_thread": False} # SQLite specific
+else:
+    # Fix for Render: They use 'postgres://' but SQLAlchemy needs 'postgresql://'
+    if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+        SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    connect_args = {} # Postgres doesn't need arguments
 
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-# Dependency to get DB session in every request
 def get_db():
     db = SessionLocal()
     try:
