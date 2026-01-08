@@ -5,6 +5,8 @@ from app.domains.master import models as master_models, routes as master_routes
 from app.domains.inventory import models as inv_models, routes as inv_routes
 from app.domains.sales import models as sales_models, routes as sales_routes
 from app.domains.compliance import routes as compliance_routes # <--- Import
+from app.domains.analytics import routes as analytics_routes
+
 
 # Database Init
 master_models.Base.metadata.create_all(bind=engine)
@@ -33,6 +35,7 @@ app.include_router(master_routes.router)
 app.include_router(inv_routes.router)
 app.include_router(sales_routes.router)
 app.include_router(compliance_routes.router)
+app.include_router(analytics_routes.router)
 
 
 @app.get("/")

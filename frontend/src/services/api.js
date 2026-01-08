@@ -30,6 +30,8 @@ export const salesService = {
 export const complianceService = {
     traceBatch: (batchNumber) => api.get(`/compliance/trace/${batchNumber}`),
 };
-
+export const analyticsService = {
+    getInsights: () => api.get('/analytics/insights/'),
+};
 
 export default api;

@@ -8,6 +8,7 @@ import InboundForm from './components/InboundForm'
 import SalesOrderForm from './components/SalesOrderForm' // <--- The new component
 import WarehouseMap from './components/WarehouseMap' // <--- IMPORT
 import BatchTracer from './components/BatchTracer' // <--- IMPORT
+import AIInsights from './components/AIInsights' // <--- IMPORT
 
 
 function App() {
@@ -44,6 +45,9 @@ function App() {
           {status}
         </div>
       </div>
+      
+      {/* --- INTELLIGENCE LAYER --- */}
+      <AIInsights />
 
       {/* --- OPERATIONS CENTER (Forms) --- */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '40px' }}>
