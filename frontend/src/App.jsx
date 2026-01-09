@@ -57,7 +57,7 @@ function App() {
       <AIInsights />
 
       {/* --- OPERATIONS CENTER (Forms) --- */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '40px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '30px', marginBottom: '40px' }}>
         
         {/* Left: INBOUND (Receiving) */}
         <div>
@@ -72,7 +72,7 @@ function App() {
       </div>
 
       {/* --- DATA VISUALIZATION (Dashboards) --- */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '30px' }}>
           
           {/* Left: Master Data */}
           <div>
@@ -81,17 +81,12 @@ function App() {
 
           {/* Right: Live Inventory Floor */}
           <div>
-             {/* The key prop forces this component to reload when refreshTrigger changes */}
              <InventoryDashboard key={refreshTrigger} />
           </div>
 
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-          <div><ProductList /></div>
-          <div><InventoryDashboard key={refreshTrigger} /></div>
-      </div>
-
+      {/* --- DIGITAL TWIN (Map) --- */}
       <WarehouseMap key={refreshTrigger} />
 
 
