@@ -5,16 +5,43 @@ const BatchTracer = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [traceData, setTraceData] = useState(null);
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const handleSearch = async (e) => {
         e.preventDefault();
         setError('');
         setTraceData(null);
+        setLoading(true);
         try {
             const response = await complianceService.traceBatch(searchQuery);
             setTraceData(response.data);
         } catch (err) {
             setError("Batch not found or invalid.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // --- NEW: RECALL LOGIC ---
+    const handleRecall = async () => {
+        if (!traceData) return;
+        
+        // 1. Confirm with the user
+        const confirm = window.confirm(
+            `⚠ SECURITY ALERT\n\nAre you sure you want to initiate a CLASS I RECALL for Batch ${traceData.batch_info.batch_number}?\n\nThis will trigger automated email alerts to all affected customers.`
+        );
+        
+        if (confirm) {
+            try {
+                // 2. Call the API
+                const res = await complianceService.initiateRecall(traceData.batch_info.batch_number);
+                
+                // 3. Show Success
+                alert(`✅ SYSTEM RESPONSE: ${res.data.message}`);
+                
+            } catch (err) {
+                alert("❌ Recall Initiation Failed: " + (err.response?.data?.detail || err.message));
+            }
         }
     };
 
@@ -31,8 +58,13 @@ const BatchTracer = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{ flex: 1, padding: '12px', background: '#1e293b', border: '1px solid #334155', color: 'white', borderRadius: '6px' }}
                 />
-                <button type="submit" className="badge badge-red" style={{ fontSize: '1rem', cursor: 'pointer', border: 'none' }}>
-                    🔍 TRACE
+                <button 
+                    type="submit" 
+                    className="badge badge-red" 
+                    style={{ fontSize: '1rem', cursor: 'pointer', border: 'none' }}
+                    disabled={loading}
+                >
+                    {loading ? "Scanning..." : "🔍 TRACE"}
                 </button>
             </form>
 
@@ -95,11 +127,23 @@ const BatchTracer = () => {
 
                     </div>
                     
-                    {/* 4. EMERGENCY ACTION */}
-                    <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                    {/* 4. EMERGENCY ACTION (RED BUTTON) */}
+                    <div style={{ marginTop: '30px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
+                         <p style={{color: '#ef4444', marginBottom: '15px', fontWeight: 'bold'}}>⚠ DANGER ZONE</p>
                          <button 
-                            style={{ background: '#ef4444', color: 'white', border: 'none', padding: '15px 30px', borderRadius: '6px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', letterSpacing: '1px' }}
-                            onClick={() => alert("🚨 RECALL INITIATED: Automatic emails sent to " + traceData.sales_trail.length + " customers.")}
+                            style={{ 
+                                background: '#ef4444', 
+                                color: 'white', 
+                                border: 'none', 
+                                padding: '15px 30px', 
+                                borderRadius: '6px', 
+                                fontSize: '1rem', 
+                                fontWeight: 'bold', 
+                                cursor: 'pointer', 
+                                letterSpacing: '1px',
+                                boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)'
+                            }}
+                            onClick={handleRecall}
                          >
                             ⚠ INITIATE BATCH RECALL
                          </button>
