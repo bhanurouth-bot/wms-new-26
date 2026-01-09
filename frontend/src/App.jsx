@@ -11,12 +11,14 @@ import SalesOrderForm from './components/SalesOrderForm';
 import WarehouseMap from './components/WarehouseMap';
 import BatchTracer from './components/BatchTracer';
 import AIInsights from './components/AIInsights';
+import MobileScanner from './components/MobileScanner';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [userRole, setUserRole] = useState(null); // <--- STORE ROLE
   const [status, setStatus] = useState("Connecting...");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [showScanner, setShowScanner] = useState(false);
 
   // --- AUTH LOGIC ---
   useEffect(() => {
@@ -129,6 +131,33 @@ function App() {
       {isAdmin && (
          <BatchTracer />
       )}
+{/* --- FLOATING SCAN BUTTON --- */}
+      <button 
+        onClick={() => setShowScanner(true)}
+        style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            width: '60px',
+            height: '60px',
+            borderRadius: '50%',
+            background: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            fontSize: '1.5rem',
+            boxShadow: '0 10px 25px rgba(59, 130, 246, 0.5)',
+            cursor: 'pointer',
+            zIndex: 900,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        }}
+      >
+        📷
+      </button>
+
+      {/* --- SCANNER OVERLAY --- */}
+      {showScanner && <MobileScanner onClose={() => setShowScanner(false)} />}
 
     </div>
   );
