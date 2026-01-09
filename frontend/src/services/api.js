@@ -9,6 +9,29 @@ const api = axios.create({
     },
 });
 
+// --- NEW: REQUEST INTERCEPTOR ---
+// Before sending any request, check if we have a token and attach it.
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+}, (error) => Promise.reject(error));
+
+// --- OPTIONAL: RESPONSE INTERCEPTOR ---
+// If the backend says "401 Unauthorized" (Token expired), force logout.
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem('token');
+            window.location.reload(); // Refresh to show Login screen
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const masterService = {
     getProducts: () => api.get('/master/products/'),
     getManufacturers: () => api.get('/master/manufacturers/'),

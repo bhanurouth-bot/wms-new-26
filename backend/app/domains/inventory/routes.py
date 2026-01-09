@@ -4,6 +4,9 @@ from typing import List
 from app.core.database import get_db
 from app.domains.inventory import models, schemas
 from app.domains.master.models import Product  # <--- CRITICAL IMPORT
+from app.domains.auth.dependencies import get_current_active_user
+from app.domains.auth.models import User
+
 
 router = APIRouter(
     prefix="/inventory",
@@ -29,7 +32,11 @@ def create_bin(bin_data: schemas.BinCreate, db: Session = Depends(get_db)):
     return db_bin
 
 @router.post("/inbound/receive/")
-def receive_stock(tx: schemas.InboundTransaction, db: Session = Depends(get_db)):
+def receive_stock(
+    tx: schemas.InboundTransaction, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user) # <--- ADD THIS LOCK
+):
     # 1. Validate Product
     product = db.query(Product).filter(Product.id == tx.product_id).first()
     if not product:
@@ -117,7 +124,10 @@ def receive_telemetry(data: schemas.TelemetryData, db: Session = Depends(get_db)
 # --- DASHBOARD ROUTES ---
 
 @router.get("/stock/live/", response_model=List[schemas.StockView])
-def get_live_stock(db: Session = Depends(get_db)):
+def get_live_stock(
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_active_user) # <--- ADD THIS LOCK
+):
     results = []
     
     # Query now includes is_quarantined

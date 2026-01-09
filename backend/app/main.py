@@ -6,12 +6,14 @@ from app.domains.inventory import models as inv_models, routes as inv_routes
 from app.domains.sales import models as sales_models, routes as sales_routes
 from app.domains.compliance import routes as compliance_routes # <--- Import
 from app.domains.analytics import routes as analytics_routes
+from app.domains.auth import models as auth_models, routes as auth_routes # <--- IMPORT
 
 
 # Database Init
 master_models.Base.metadata.create_all(bind=engine)
 inv_models.Base.metadata.create_all(bind=engine)
 sales_models.Base.metadata.create_all(bind=engine)
+auth_models.Base.metadata.create_all(bind=engine) # <--- CREATE TABLES
 
 app = FastAPI(title="Unified Pharma ERP-WMS", version="0.1.0")
 
@@ -36,6 +38,7 @@ app.include_router(inv_routes.router)
 app.include_router(sales_routes.router)
 app.include_router(compliance_routes.router)
 app.include_router(analytics_routes.router)
+app.include_router(auth_routes.router)
 
 
 @app.get("/")
