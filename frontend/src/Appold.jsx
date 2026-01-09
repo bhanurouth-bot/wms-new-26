@@ -1,37 +1,44 @@
-import { useState, useEffect } from 'react';
-import api from './services/api';
+import { useState, useEffect } from 'react'
+// import axios from 'axios'
+import api from './services/api' 
 import Login from './components/Login';
 
-// Components
-import ProductList from './components/ProductList';
-import InventoryDashboard from './components/InventoryDashboard';
-import InboundForm from './components/InboundForm';
-import SalesOrderForm from './components/SalesOrderForm';
-import WarehouseMap from './components/WarehouseMap';
-import BatchTracer from './components/BatchTracer';
-import AIInsights from './components/AIInsights';
+// Import all your components
+import ProductList from './components/ProductList'
+import InventoryDashboard from './components/InventoryDashboard'
+import InboundForm from './components/InboundForm'
+import SalesOrderForm from './components/SalesOrderForm' // <--- The new component
+import WarehouseMap from './components/WarehouseMap' // <--- IMPORT
+import BatchTracer from './components/BatchTracer' // <--- IMPORT
+import AIInsights from './components/AIInsights' // <--- IMPORT
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(localStorage.getItem('token')); // Load from storage
   const [status, setStatus] = useState("Connecting...");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // -------------------------------------------------------------------------
-  // ✅ FIX: MOVED useEffect TO THE TOP (Before any return statements)
-  // -------------------------------------------------------------------------
-  useEffect(() => {
-    // Only check API health if we have a token
-    if (token) {
-        api.get('/')
-          .then(() => setStatus("Online"))
-          .catch((err) => {
-              console.error(err);
-              setStatus("Offline");
-          });
-    }
-  }, [token]); // Re-run when token changes
+  if (!token) {
+    return <Login onLoginSuccess={(tk) => setToken(tk)} />;
+  }
 
-  // Helper functions
+  // useEffect(() => {
+  //   // Quick Health Check to the Backend
+  //   axios.get('http://127.0.0.1:8000/')
+  //     .then(() => setStatus("Online"))
+  //     .catch(() => setStatus("Offline"))
+  // }, [])
+
+  useEffect(() => {
+    // We check health, but now this request will carry the token!
+    api.get('/') 
+      .then(() => setStatus("Online"))
+      .catch((err) => {
+          console.error(err);
+          setStatus("Offline");
+      });
+  }, []);
+
+  // This function is passed to the Forms. When they succeed, they call this.
   const handleStockUpdate = () => {
     setRefreshTrigger(prev => prev + 1);
   };
@@ -39,16 +46,7 @@ function App() {
   const handleLogout = () => {
       localStorage.removeItem('token');
       setToken(null);
-      // Optional: Reset other states if needed
-      setStatus("Connecting...");
   };
-
-  // -------------------------------------------------------------------------
-  // ✅ NOW it is safe to return early because all hooks have been declared
-  // -------------------------------------------------------------------------
-  if (!token) {
-    return <Login onLoginSuccess={(tk) => setToken(tk)} />;
-  }
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px 20px' }}>
@@ -93,7 +91,7 @@ function App() {
       <BatchTracer />
 
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
