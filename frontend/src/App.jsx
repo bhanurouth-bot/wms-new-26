@@ -11,7 +11,6 @@ import SalesOrderForm from './components/SalesOrderForm' // <--- The new compone
 import WarehouseMap from './components/WarehouseMap' // <--- IMPORT
 import BatchTracer from './components/BatchTracer' // <--- IMPORT
 import AIInsights from './components/AIInsights' // <--- IMPORT
-import Login from './components/Login';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token')); // Load from storage
