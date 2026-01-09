@@ -1,119 +1,156 @@
-import React, { useEffect, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { complianceService } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { QrReader } from 'react-qr-reader'; // Ensure you are using the modern version
+import { inventoryService } from '../services/api';
 
-const MobileScanner = ({ onClose }) => {
+const MobileScanner = ({ onScanSuccess }) => {
     const [scanResult, setScanResult] = useState(null);
+    const [isPaused, setIsPaused] = useState(false); // <--- THE FIX: Pause State
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        // Initialize Scanner
-        const scanner = new Html5QrcodeScanner(
-            "reader", 
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            /* verbose= */ false
-        );
-
-        scanner.render(onScanSuccess, onScanFailure);
-
-        // Cleanup on unmount
-        return () => {
-            scanner.clear().catch(error => console.error("Failed to clear scanner", error));
-        };
-    }, []);
-
-    const onScanSuccess = async (decodedText, decodedResult) => {
-        // Stop scanning after success to prevent flood
-        // (In a real app, we might pause the scanner, but for now we just query)
-        if (loading) return;
+    // This function handles the "Rapid Fire" scanning issue
+    const handleScan = (result, error) => {
+        if (isPaused) return; // Stop listening if we already found something
         
-        console.log(`Scan result: ${decodedText}`, decodedResult);
-        await fetchBatchDetails(decodedText);
+        if (result && result?.text) {
+            setIsPaused(true); // 🛑 FREEZE CAMERA IMMEDIATELY
+            setScanResult(result.text);
+            
+            // Optional: Haptic Feedback (Vibrate phone)
+            if (navigator.vibrate) navigator.vibrate(200);
+        }
+        
+        if (error) {
+            // console.info(error); // Ignore frame errors
+        }
     };
 
-    const onScanFailure = (error) => {
-        // Keeps scanning... just ignore errors like "No QR code found"
-    };
-
-    const fetchBatchDetails = async (batchNumber) => {
+    const handleAction = async (actionType) => {
+        if (!scanResult) return;
         setLoading(true);
-        setError(null);
+
         try {
-            // We use the Compliance Trace endpoint because it gives us EVERYTHING about a batch
-            const response = await complianceService.traceBatch(batchNumber);
-            setScanResult(response.data);
-        } catch (err) {
-            setError(`Batch ${batchNumber} not found in system.`);
+            // Example logic - customize based on your needs
+            if (actionType === 'AUDIT') {
+                alert(`🔍 Auditing Batch: ${scanResult}`);
+                // await inventoryService.auditBatch(scanResult);
+            } else if (actionType === 'MOVE') {
+                alert(`🚚 Moving Stock: ${scanResult}`);
+                // await inventoryService.moveStock(scanResult);
+            }
+            
+            // Reset after action is done
             setScanResult(null);
+            setIsPaused(false); // ▶ RESUME SCANNING
+            if (onScanSuccess) onScanSuccess(scanResult);
+
+        } catch (err) {
+            alert("Action Failed");
+            setIsPaused(false); // Resume even on error
         } finally {
             setLoading(false);
         }
     };
 
+    const resetScanner = () => {
+        setScanResult(null);
+        setIsPaused(false);
+    };
+
     return (
-        <div style={{
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh',
-            background: '#0f172a', zIndex: 1000, display: 'flex', flexDirection: 'column'
-        }}>
-            {/* HEADER */}
-            <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b' }}>
-                <h2 style={{ margin: 0, color: '#fff' }}>📷 Scan Mode</h2>
-                <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
+        <div style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}>
+            
+            {/* 1. CAMERA VIEW */}
+            <div style={{ 
+                position: 'relative', 
+                borderRadius: '20px', 
+                overflow: 'hidden', 
+                border: '2px solid #3b82f6',
+                boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.5)'
+            }}>
+                {/* Only show camera if we haven't paused (optional performance boost) */}
+                <QrReader
+                    onResult={handleScan}
+                    constraints={{ facingMode: 'environment' }}
+                    scanDelay={500} // Slow down the scan rate
+                    containerStyle={{ width: '100%', height: '300px' }}
+                    videoStyle={{ objectFit: 'cover' }}
+                />
+
+                {/* SCANNER OVERLAY (Target Box) */}
+                <div style={{
+                    position: 'absolute',
+                    top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '200px', height: '200px',
+                    border: '2px dashed rgba(255,255,255,0.8)',
+                    borderRadius: '12px',
+                    boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)', // Dim outside area
+                    pointerEvents: 'none' // Let clicks pass through
+                }}></div>
             </div>
 
-            {/* SCANNER VIEWPORT */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                
-                {/* The Camera Feed Div */}
-                {!scanResult && !loading && (
-                    <div id="reader" style={{ width: '100%', maxWidth: '400px', border: '2px solid #3b82f6', borderRadius: '12px', overflow: 'hidden' }}></div>
-                )}
-
-                {/* LOADING STATE */}
-                {loading && <div style={{ color: '#3b82f6', fontSize: '1.5rem' }}>Processing Scan...</div>}
-                
-                {/* ERROR STATE */}
-                {error && (
-                    <div style={{ padding: '20px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', borderRadius: '12px', textAlign: 'center' }}>
-                        {error}
-                        <button onClick={() => { setError(null); setScanResult(null); }} style={{ display: 'block', margin: '15px auto 0', padding: '10px 20px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px' }}>Retry</button>
+            {/* 2. RESULT / ACTION CARD (The "Alert Box") */}
+            {scanResult && (
+                <div className="glass-panel" style={{
+                    marginTop: '20px',
+                    padding: '20px',
+                    border: '1px solid #10b981',
+                    animation: 'slideUp 0.3s ease-out',
+                    // FORCE Z-INDEX to be above everything
+                    position: 'relative', 
+                    zIndex: 1000 
+                }}>
+                    <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>SCANNED CODE</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#fff', fontFamily: 'monospace' }}>
+                            {scanResult}
+                        </div>
                     </div>
-                )}
 
-                {/* RESULT CARD */}
-                {scanResult && (
-                    <div style={{ width: '100%', maxWidth: '400px', background: '#1e293b', borderRadius: '16px', padding: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
-                        <div style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '5px' }}>IDENTIFIED BATCH</div>
-                        <h2 style={{ margin: '0 0 10px 0', color: '#fbbf24', fontSize: '2rem', fontFamily: 'monospace' }}>
-                            {scanResult.batch_info.batch_number}
-                        </h2>
-                        
-                        <div style={{ marginBottom: '20px' }}>
-                            <div style={{ color: 'white', fontSize: '1.2rem', fontWeight: 'bold' }}>{scanResult.batch_info.product}</div>
-                            <div style={{ color: scanResult.current_locations.length > 0 ? '#10b981' : '#ef4444' }}>
-                                {scanResult.current_locations.length > 0 ? `${scanResult.current_locations[0].qty} Units in Stock` : 'Out of Stock'}
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                            <button style={{ padding: '15px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold' }}>
-                                📦 Move
-                            </button>
-                            <button style={{ padding: '15px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold' }}>
-                                ✅ Audit
-                            </button>
-                        </div>
-                        
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                         <button 
-                            onClick={() => setScanResult(null)} 
-                            style={{ width: '100%', marginTop: '15px', padding: '15px', background: 'transparent', border: '1px solid #475569', color: '#94a3b8', borderRadius: '8px' }}
+                            onClick={() => handleAction('AUDIT')}
+                            disabled={loading}
+                            style={{
+                                padding: '15px',
+                                background: '#3b82f6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '1rem',
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                            }}
                         >
-                            Scan Next Item
+                            🔍 AUDIT
+                        </button>
+
+                        <button 
+                            onClick={() => handleAction('MOVE')}
+                            disabled={loading}
+                            style={{
+                                padding: '15px',
+                                background: '#8b5cf6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '1rem',
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            🚚 MOVE
                         </button>
                     </div>
-                )}
-            </div>
+                    
+                    <button 
+                        onClick={resetScanner}
+                        style={{ width: '100%', marginTop: '15px', padding: '10px', background: 'transparent', border: '1px solid #64748b', color: '#94a3b8', borderRadius: '8px' }}
+                    >
+                        ❌ Cancel / Rescan
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
