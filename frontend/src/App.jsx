@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
-
+// import axios from 'axios'
+import api from './services/api' 
 // Import all your components
 import ProductList from './components/ProductList'
 import InventoryDashboard from './components/InventoryDashboard'
@@ -16,12 +16,19 @@ function App() {
   // This trigger is used to force the Inventory Dashboard to reload when stock changes
   const [refreshTrigger, setRefreshTrigger] = useState(0); 
 
+  // useEffect(() => {
+  //   // Quick Health Check to the Backend
+  //   axios.get('http://127.0.0.1:8000/')
+  //     .then(() => setStatus("Online"))
+  //     .catch(() => setStatus("Offline"))
+  // }, [])
+
   useEffect(() => {
-    // Quick Health Check to the Backend
-    axios.get('http://127.0.0.1:8000/')
-      .then(() => setStatus("Online"))
-      .catch(() => setStatus("Offline"))
-  }, [])
+  // Use the 'api' agent, not raw axios
+  api.get('/')
+    .then(() => setStatus("Online"))
+    .catch(() => setStatus("Offline"))
+}, [])
 
   // This function is passed to the Forms. When they succeed, they call this.
   const handleStockUpdate = () => {
