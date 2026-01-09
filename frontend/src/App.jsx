@@ -147,7 +147,7 @@ function App() {
             fontSize: '1.5rem',
             boxShadow: '0 10px 25px rgba(59, 130, 246, 0.5)',
             cursor: 'pointer',
-            zIndex: 900,
+            zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
