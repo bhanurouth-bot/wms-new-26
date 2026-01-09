@@ -55,6 +55,7 @@ export const complianceService = {
 };
 export const analyticsService = {
     getInsights: () => api.get('/analytics/insights/'),
+    initiateRecall: (batchNumber) => api.post(`/compliance/recall/${batchNumber}`),
 };
 
 export default api;
