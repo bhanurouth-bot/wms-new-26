@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { jwtDecode } from "jwt-decode"; // <--- NEW LIBRARY
 import api from './services/api';
 import Login from './components/Login';
 
@@ -13,25 +14,33 @@ import AIInsights from './components/AIInsights';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [userRole, setUserRole] = useState(null); // <--- STORE ROLE
   const [status, setStatus] = useState("Connecting...");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // -------------------------------------------------------------------------
-  // ✅ FIX: MOVED useEffect TO THE TOP (Before any return statements)
-  // -------------------------------------------------------------------------
+  // --- AUTH LOGIC ---
   useEffect(() => {
-    // Only check API health if we have a token
     if (token) {
-        api.get('/')
-          .then(() => setStatus("Online"))
-          .catch((err) => {
-              console.error(err);
-              setStatus("Offline");
-          });
+      try {
+        // Decode the token to get "sub" (email) and "role"
+        const decoded = jwtDecode(token);
+        setUserRole(decoded.role); // e.g., 'ADMIN' or 'PICKER'
+      } catch (e) {
+        console.error("Invalid Token", e);
+        handleLogout();
+      }
     }
-  }, [token]); // Re-run when token changes
+  }, [token]);
 
-  // Helper functions
+  // --- HEALTH CHECK ---
+  useEffect(() => {
+    if (token) {
+      api.get('/') 
+        .then(() => setStatus("Online"))
+        .catch(() => setStatus("Offline"));
+    }
+  }, [token]);
+
   const handleStockUpdate = () => {
     setRefreshTrigger(prev => prev + 1);
   };
@@ -39,16 +48,18 @@ function App() {
   const handleLogout = () => {
       localStorage.removeItem('token');
       setToken(null);
-      // Optional: Reset other states if needed
-      setStatus("Connecting...");
+      setUserRole(null);
   };
 
-  // -------------------------------------------------------------------------
-  // ✅ NOW it is safe to return early because all hooks have been declared
-  // -------------------------------------------------------------------------
+  // If no token, show Login
   if (!token) {
     return <Login onLoginSuccess={(tk) => setToken(tk)} />;
   }
+
+  // --- RENDER HELPERS (RBAC) ---
+  const isAdmin = userRole === 'ADMIN';
+  const isManager = userRole === 'MANAGER' || isAdmin;
+  // Pickers see the basics. Admins see everything.
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px 20px' }}>
@@ -59,7 +70,13 @@ function App() {
           <h1 style={{ fontSize: '2rem', fontWeight: '700', letterSpacing: '-1px', margin: '0 0 5px 0' }}>
             Pharma<span style={{ color: '#3b82f6' }}>OS</span>
           </h1>
-          <p style={{ margin: 0, color: '#94a3b8' }}>Unified ERP & WMS Platform</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <p style={{ margin: 0, color: '#94a3b8' }}>Unified ERP & WMS Platform</p>
+            {/* SHOW BADGE OF CURRENT ROLE */}
+            <span className="badge badge-blue" style={{ fontSize: '0.7rem' }}>
+              {userRole || 'LOADING...'}
+            </span>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
@@ -76,21 +93,42 @@ function App() {
         </div>
       </div>
 
-      {/* --- CONTENT --- */}
-      <AIInsights />
+      {/* --- CONTENT AREA --- */}
 
+      {/* 1. INTELLIGENCE LAYER (Admins/Managers Only) */}
+      {isManager && (
+         <AIInsights />
+      )}
+
+      {/* 2. OPERATIONS (Everyone needs this) */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '40px' }}>
         <div><InboundForm onSuccess={handleStockUpdate} /></div>
         <div><SalesOrderForm onSuccess={handleStockUpdate} /></div>
       </div>
 
+      {/* 3. DATA VISUALIZATION */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-          <div><ProductList /></div>
+          
+          {/* Master Data (Admins Only - Pickers shouldn't edit products) */}
+          <div>
+            {isManager ? <ProductList /> : (
+              <div className="glass-panel" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                🔒 Master Data Restricted
+              </div>
+            )}
+          </div>
+
+          {/* Live Inventory (Everyone needs to see stock) */}
           <div><InventoryDashboard key={refreshTrigger} /></div>
       </div>
 
+      {/* 4. DIGITAL TWIN (Everyone uses the map) */}
       <WarehouseMap key={refreshTrigger} />
-      <BatchTracer />
+
+      {/* 5. COMPLIANCE & RECALL (Admins Only) */}
+      {isAdmin && (
+         <BatchTracer />
+      )}
 
     </div>
   );
